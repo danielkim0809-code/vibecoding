@@ -137,3 +137,18 @@ button:active {
   box-shadow: var(--shadow);
   font-weight: 800;
 }
+
+#todo-list li .star {
+  padding: 4px 10px;
+  background: var(--yellow);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+#todo-list li.important {
+  background: var(--pink);
+}
+
+#todo-list li.important .star {
+  background: #fff;
+}

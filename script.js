@@ -6,7 +6,7 @@ const remainingCount = document.getElementById("remaining-count");
 
 const STORAGE_KEY = "todos";
 
-// 할 일 모음: { id, text, done }
+// 할 일 모음: { id, text, done, important }
 let todos = loadTodos();
 
 // 저장해 둔 할 일을 꺼낸다 (없거나 망가졌으면 빈 목록)
@@ -31,6 +31,19 @@ function saveTodos() {
 function createTodoItem(todo) {
   const item = document.createElement("li");
   item.classList.toggle("done", todo.done);
+  item.classList.toggle("important", Boolean(todo.important));
+
+  const starButton = document.createElement("button");
+  starButton.type = "button";
+  starButton.className = "star";
+  starButton.textContent = todo.important ? "★" : "☆";
+  starButton.setAttribute("aria-label", "중요한 일 표시");
+  starButton.setAttribute("aria-pressed", String(Boolean(todo.important)));
+  starButton.addEventListener("click", function () {
+    todo.important = !todo.important;
+    saveTodos();
+    render();
+  });
 
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
@@ -55,7 +68,7 @@ function createTodoItem(todo) {
     render();
   });
 
-  item.append(checkbox, label, deleteButton);
+  item.append(starButton, checkbox, label, deleteButton);
   return item;
 }
 
@@ -76,7 +89,7 @@ addButton.addEventListener("click", function () {
     input.focus();
     return;
   }
-  todos.push({ id: Date.now() + Math.random(), text: text, done: false });
+  todos.push({ id: Date.now() + Math.random(), text: text, done: false, important: false });
   saveTodos();
   input.value = "";
   input.focus();
