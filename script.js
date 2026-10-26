@@ -25,11 +25,17 @@ const list = document.getElementById("todo-list");
 const emptyMessage = document.getElementById("empty-message");
 const remainingCount = document.getElementById("remaining-count");
 
-const STORAGE_KEY = "todos"; // 목록이 하나였을 때 쓰던 저장 키 (예전 할 일을 옮겨 올 때만 읽는다)
-const LISTS_KEY = "lists";
+// Supabase: 공개(publishable) 키만 쓴다. 비밀 키는 이 파일에 넣지 않는다.
+const SUPABASE_URL = "https://bhqmekifnvgusvggwgry.supabase.co";
+const SUPABASE_KEY = "sb_publishable_X2FIs9KhqjO1eAYSWxQCrQ_uPD2V-O_";
+
+// 이 브라우저에 남겨 두는 것: 화면 설정(모드, 마지막으로 본 목록)과, 예전에 이 브라우저에 저장했던 할 일(Supabase로 옮겨 갈 때만 읽는다)
+const OLD_TODOS_KEY = "todos";
+const OLD_LISTS_KEY = "lists";
+const ACTIVE_LIST_KEY = "activeList";
 const THEME_KEY = "theme";
 
-// 할 일 모음: { id, text, done, priority, category, date, time } (priority는 high·mid·low, category·date·time은 비어 있을 수 있다)
+// 할 일 모음: { id, text, done, priority, category, date, time, createdAt } (priority는 high·mid·low, category·date·time은 비어 있을 수 있다)
 const PRIORITY_LABELS = { high: "높음", mid: "중간", low: "낮음" };
 
 // 처음 열었을 때 들어 있는 예시 목록: [내용, 카테고리, 우선순위]
@@ -115,73 +121,169 @@ function readStorage(key) {
   }
 }
 
-// 예시 목록을 만든다. 예전에 쓰던 할 일이 있으면 "오늘 할 일" 목록으로 옮겨 온다
-function createSeedLists() {
-  const legacy = normalizeTodos(readStorage(STORAGE_KEY));
-  let nextId = Date.now();
-  return SEED_LISTS.map(function (seed, index) {
-    const seedTodos = seed.items.map(function (item) {
-      nextId += 1;
-      return {
-        id: nextId,
-        text: item[0],
-        done: false,
-        priority: item[2],
-        category: item[1],
-        date: "",
-        time: "",
-      };
+function readStorage(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key));
+  } catch (error) {
+    return null;
+  }
+}
+
+// Supabase 표에 요청을 보낸다 (주소 뒤에 표 이름과 조건을 붙인다)
+async function api(path, method, body) {
+  const response = await fetch(SUPABASE_URL + "/rest/v1/" + path, {
+    method: method || "GET",
+    headers: {
+      apikey: SUPABASE_KEY,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(method + " " + path + " → " + response.status + " " + (await response.text()));
+  }
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// 표의 한 줄 ↔ 화면에서 쓰는 할 일
+function fromRow(row) {
+  return {
+    id: row.id,
+    text: row.text,
+    done: Boolean(row.done),
+    priority: PRIORITY_LABELS[row.priority] ? row.priority : "mid",
+    category: row.category || "",
+    date: row.due_date || "",
+    time: (row.due_time || "").slice(0, 5),
+    createdAt: row.created_at || "",
+  };
+}
+
+function toFields(todo) {
+  return {
+    text: todo.text,
+    done: todo.done,
+    priority: todo.priority,
+    category: todo.category,
+    due_date: todo.date || null,
+    due_time: todo.time || null,
+  };
+}
+
+// 이 브라우저에 있던 예전 할 일(또는 예시 목록)을 올릴 모양으로 만든다: [{ name, todos }]
+function getLocalImport() {
+  const saved = readStorage(OLD_LISTS_KEY);
+  if (saved && Array.isArray(saved.lists) && saved.lists.length > 0) {
+    return saved.lists.map(function (item) {
+      return { name: item.name, todos: normalizeTodos(item.todos) };
     });
+  }
+  const legacy = normalizeTodos(readStorage(OLD_TODOS_KEY));
+  return SEED_LISTS.map(function (seed, index) {
     return {
-      id: "list-" + (nextId + index),
       name: seed.name,
-      todos: index === 0 ? legacy : seedTodos,
+      todos:
+        index === 0
+          ? legacy
+          : seed.items.map(function (item) {
+              return { text: item[0], done: false, priority: item[2], category: item[1], date: "", time: "" };
+            }),
     };
   });
 }
 
-// 저장해 둔 목록들을 꺼낸다 (없거나 망가졌으면 예시 목록으로 시작)
-function loadLists() {
-  const saved = readStorage(LISTS_KEY);
-  if (saved && Array.isArray(saved.lists) && saved.lists.length > 0) {
-    saved.lists.forEach(function (savedList) {
-      savedList.todos = normalizeTodos(savedList.todos);
-    });
-    return saved;
+// 표가 비어 있을 때: 목록과 할 일을 한 번에 올린다 (처음 한 번만)
+async function uploadInitialData() {
+  for (const item of getLocalImport()) {
+    const createdLists = await api("lists", "POST", [{ name: item.name }]);
+    if (item.todos.length > 0) {
+      await api(
+        "todos",
+        "POST",
+        item.todos.map(function (todo) {
+          return Object.assign(toFields(todo), { list_id: createdLists[0].id });
+        })
+      );
+    }
   }
-  const seeded = createSeedLists();
-  return { lists: seeded, activeId: seeded[0].id };
 }
 
-const state = loadLists();
-let lists = state.lists;
-let activeListId = lists.some(function (item) {
-  return item.id === state.activeId;
-})
-  ? state.activeId
-  : lists[0].id;
-
-function getActiveList() {
-  return lists.find(function (item) {
-    return item.id === activeListId;
+// 표에서 목록과 할 일을 모두 가져와 화면용 모양으로 만든다
+async function fetchLists() {
+  let listRows = await api("lists?select=*&order=created_at.asc,id.asc");
+  if (listRows.length === 0) {
+    await uploadInitialData();
+    listRows = await api("lists?select=*&order=created_at.asc,id.asc");
+  }
+  // 목록이 정해지지 않은 예전 할 일은 맨 앞 목록으로 옮긴다
+  await api("todos?list_id=is.null", "PATCH", { list_id: listRows[0].id });
+  const todoRows = await api("todos?select=*&order=created_at.asc,id.asc");
+  return listRows.map(function (listRow) {
+    return {
+      id: listRow.id,
+      name: listRow.name,
+      todos: todoRows
+        .filter(function (row) {
+          return row.list_id === listRow.id;
+        })
+        .map(fromRow),
+    };
   });
 }
 
-let todos = getActiveList().todos;
+let lists = [];
+let activeListId = null;
+let todos = [];
+let loadState = "loading"; // loading · ready · error
 let listFormMode = null; // 이름 입력칸이 열려 있으면 "new" 또는 "rename"
 let editingId = null; // 고치는 중인 할 일의 id (없으면 null)
 let justCheckedId = null; // 방금 체크한 할 일 (애니메이션용)
 let statusFilter = "all"; // all · active · done
 let selectedCategory = ""; // 빈 글자면 전체 카테고리
 
-// 지금 목록의 할 일을 목록에 반영하고, 모든 목록을 저장한다
-function saveTodos() {
-  getActiveList().todos = todos;
+function getActiveList() {
+  return lists.find(function (item) {
+    return String(item.id) === String(activeListId);
+  });
+}
+
+// 지금 목록의 할 일을 새 모음으로 바꾼다
+function setTodos(next) {
+  getActiveList().todos = next;
+  todos = next;
+}
+
+// 가져온 목록들로 화면 상태를 맞춘다 (마지막으로 본 목록을 다시 연다)
+function applyLists(fetched) {
+  lists = fetched;
+  const remembered = readStorage(ACTIVE_LIST_KEY);
+  const keep = lists.some(function (item) {
+    return String(item.id) === String(activeListId || remembered);
+  });
+  activeListId = keep ? activeListId || remembered : lists[0].id;
+  todos = getActiveList().todos;
+}
+
+function rememberActiveList() {
   try {
-    localStorage.setItem(LISTS_KEY, JSON.stringify({ lists: lists, activeId: activeListId }));
+    localStorage.setItem(ACTIVE_LIST_KEY, JSON.stringify(activeListId));
   } catch (error) {
-    // 저장이 막혀 있어도 화면은 계속 쓸 수 있다
+    // 저장이 막혀 있어도 이번 화면에서는 그대로 쓴다
   }
+}
+
+// 저장에 실패했을 때: 알려 주고, 표의 실제 내용으로 화면을 다시 맞춘다
+async function recover(message, error) {
+  console.error(error);
+  window.alert(message + " 인터넷 연결을 확인해 주세요.");
+  try {
+    applyLists(await fetchLists());
+  } catch (fetchError) {
+    console.error(fetchError);
+  }
+  render();
 }
 
 // 다른 목록으로 바꾼다 (필터와 검색은 처음 상태로)
@@ -193,7 +295,7 @@ function switchList(id) {
   selectedCategory = "";
   searchInput.value = "";
   closeListForm();
-  saveTodos();
+  rememberActiveList();
   render();
 }
 
@@ -222,30 +324,47 @@ renameListButton.addEventListener("click", function () {
 listFormCancel.addEventListener("click", closeListForm);
 
 // [확인]: 새 목록을 만들거나 지금 목록의 이름을 바꾼다 (이름이 비었으면 아무것도 안 한다)
-listForm.addEventListener("submit", function (event) {
+listForm.addEventListener("submit", async function (event) {
   event.preventDefault();
   const name = listNameInput.value.trim();
-  if (name === "") {
+  if (name === "" || loadState !== "ready") {
     listNameInput.focus();
     return;
   }
   if (listFormMode === "rename") {
-    getActiveList().name = name;
-    saveTodos();
-  } else {
-    const created = { id: "list-" + Date.now(), name: name, todos: [] };
+    const target = getActiveList();
+    target.name = name;
+    closeListForm();
+    render();
+    try {
+      await api("lists?id=eq." + encodeURIComponent(target.id), "PATCH", { name: name });
+    } catch (error) {
+      await recover("이름을 저장하지 못했어요.", error);
+    }
+    return;
+  }
+  try {
+    const rows = await api("lists", "POST", [{ name: name }]);
+    const created = { id: rows[0].id, name: rows[0].name, todos: [] };
     lists.push(created);
     switchList(created.id);
+  } catch (error) {
+    await recover("새 목록을 만들지 못했어요.", error);
   }
-  closeListForm();
-  render();
 });
 
 // [목록 삭제]: 확인을 받고 지운다 (하나만 남으면 지울 수 없다)
-deleteListButton.addEventListener("click", function () {
-  if (lists.length <= 1) return;
+deleteListButton.addEventListener("click", async function () {
+  if (loadState !== "ready" || lists.length <= 1) return;
   const target = getActiveList();
   if (!window.confirm("'" + target.name + "' 목록과 안의 할 일이 모두 지워져요. 지울까요?")) {
+    return;
+  }
+  try {
+    await api("todos?list_id=eq." + encodeURIComponent(target.id), "DELETE");
+    await api("lists?id=eq." + encodeURIComponent(target.id), "DELETE");
+  } catch (error) {
+    await recover("목록을 지우지 못했어요.", error);
     return;
   }
   const index = lists.indexOf(target);
@@ -256,15 +375,16 @@ deleteListButton.addEventListener("click", function () {
 
 // 맨 위 제목과 목록 탭을 지금 상태에 맞게 다시 그린다
 function renderTabs() {
-  title.textContent = getActiveList().name;
-  deleteListButton.disabled = lists.length <= 1;
+  const active = getActiveList();
+  if (active) title.textContent = active.name;
+  deleteListButton.disabled = loadState !== "ready" || lists.length <= 1;
   listTabs.replaceChildren(
     ...lists.map(function (item) {
       const tab = document.createElement("button");
       tab.type = "button";
       tab.className = "list-tab";
       tab.setAttribute("role", "tab");
-      tab.setAttribute("aria-selected", String(item.id === activeListId));
+      tab.setAttribute("aria-selected", String(String(item.id) === String(activeListId)));
       tab.textContent = item.name;
       tab.addEventListener("click", function () {
         switchList(item.id);
@@ -285,7 +405,10 @@ function compareTodos(a, b) {
   const timeA = a.time || "99:99";
   const timeB = b.time || "99:99";
   if (timeA !== timeB) return timeA < timeB ? -1 : 1;
-  return a.id - b.id;
+  const createdA = a.createdAt || "";
+  const createdB = b.createdAt || "";
+  if (createdA !== createdB) return createdA < createdB ? -1 : 1;
+  return String(a.id) < String(b.id) ? -1 : 1;
 }
 
 // "2026-10-26" + "14:00" → "10/26 14:00"
@@ -312,8 +435,10 @@ function createTodoItem(todo) {
   checkbox.addEventListener("change", function () {
     todo.done = checkbox.checked;
     justCheckedId = todo.done ? todo.id : null;
-    saveTodos();
     render();
+    api("todos?id=eq." + encodeURIComponent(todo.id), "PATCH", { done: todo.done }).catch(function (error) {
+      recover("체크 상태를 저장하지 못했어요.", error);
+    });
   });
 
   const label = document.createElement("span");
@@ -345,12 +470,16 @@ function createTodoItem(todo) {
   deleteButton.type = "button";
   deleteButton.textContent = "삭제";
   deleteButton.addEventListener("click", function () {
-    todos = todos.filter(function (other) {
-      return other.id !== todo.id;
-    });
+    setTodos(
+      todos.filter(function (other) {
+        return other.id !== todo.id;
+      })
+    );
     if (editingId === todo.id) editingId = null;
-    saveTodos();
     render();
+    api("todos?id=eq." + encodeURIComponent(todo.id), "DELETE").catch(function (error) {
+      recover("할 일을 지우지 못했어요.", error);
+    });
   });
 
   const actions = document.createElement("div");
@@ -420,8 +549,10 @@ function createEditItem(todo) {
     todo.date = dateField.value;
     todo.time = timeField.value;
     editingId = null;
-    saveTodos();
     render();
+    api("todos?id=eq." + encodeURIComponent(todo.id), "PATCH", toFields(todo)).catch(function (error) {
+      recover("수정한 내용을 저장하지 못했어요.", error);
+    });
   });
 
   const cancelButton = document.createElement("button");
@@ -509,8 +640,14 @@ function render() {
   );
 
   emptyMessage.hidden = visible.length > 0;
-  emptyMessage.textContent =
-    todos.length === 0 ? "아직 할 일이 없어요" : "조건에 맞는 할 일이 없어요";
+  if (loadState === "loading") {
+    emptyMessage.textContent = "불러오는 중이에요...";
+  } else if (loadState === "error") {
+    emptyMessage.textContent = "불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.";
+  } else {
+    emptyMessage.textContent =
+      todos.length === 0 ? "아직 할 일이 없어요" : "조건에 맞는 할 일이 없어요";
+  }
 
   statusGroup.style.setProperty("--i", String(["all", "active", "done"].indexOf(statusFilter)));
   statusButtons.forEach(function (button) {
@@ -555,33 +692,55 @@ categoryFilter.addEventListener("change", function () {
   render();
 });
 
-// [추가] 버튼: 입력칸의 글을 목록에 넣고 입력칸을 비운다
-addButton.addEventListener("click", function () {
+// [추가] 버튼: 입력칸의 글을 표에 넣고, 들어간 뒤에 목록에 보여 준다
+addButton.addEventListener("click", async function () {
   const text = input.value.trim();
   if (text === "") {
     input.focus();
     return;
   }
-  todos.push({
-    id: Date.now() + Math.random(),
+  if (loadState !== "ready") return;
+  const target = getActiveList();
+  const newTodo = {
     text: text,
     done: false,
     priority: priorityInput.value,
     category: categoryInput.value.trim().replace(/^#/, ""),
     date: dateInput.value,
     time: timeInput.value,
-  });
-  saveTodos();
-  input.value = "";
-  priorityInput.value = "mid";
-  categoryInput.value = "";
-  dateInput.value = "";
-  timeInput.value = "";
-  input.focus();
+  };
+  addButton.disabled = true;
+  try {
+    const rows = await api("todos", "POST", [Object.assign(toFields(newTodo), { list_id: target.id })]);
+    target.todos.push(fromRow(rows[0]));
+    input.value = "";
+    priorityInput.value = "mid";
+    categoryInput.value = "";
+    dateInput.value = "";
+    timeInput.value = "";
+    input.focus();
+  } catch (error) {
+    await recover("할 일을 저장하지 못했어요.", error);
+  } finally {
+    addButton.disabled = false;
+  }
   render();
 });
 
+// 처음 화면: 표에서 불러오는 동안은 안내 글만 보여 준다
+async function start() {
+  try {
+    applyLists(await fetchLists());
+    loadState = "ready";
+  } catch (error) {
+    console.error(error);
+    loadState = "error";
+  }
+  render();
+}
+
 render();
+start();
 
 // 다크/라이트 모드: 저장해 둔 선택이 있으면 그것을, 없으면 기기 설정을 따른다
 function getSavedTheme() {
