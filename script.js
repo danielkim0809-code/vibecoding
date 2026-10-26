@@ -6,6 +6,7 @@ const searchInput = document.getElementById("search-input");
 const progressLabel = document.getElementById("progress-label");
 const progressTrack = document.getElementById("progress-track");
 const progressFill = document.getElementById("progress-fill");
+const themeToggle = document.getElementById("theme-toggle");
 const statusButtons = document.querySelectorAll("[data-status]");
 const categoryFilter = document.getElementById("category-filter");
 const dateInput = document.getElementById("todo-date");
@@ -16,6 +17,7 @@ const emptyMessage = document.getElementById("empty-message");
 const remainingCount = document.getElementById("remaining-count");
 
 const STORAGE_KEY = "todos";
+const THEME_KEY = "theme";
 
 // 할 일 모음: { id, text, done, priority, category, date, time } (priority는 high·mid·low, category·date·time은 비어 있을 수 있다)
 const PRIORITY_LABELS = { high: "높음", mid: "중간", low: "낮음" };
@@ -349,3 +351,34 @@ addButton.addEventListener("click", function () {
 });
 
 render();
+
+// 다크/라이트 모드: 저장해 둔 선택이 있으면 그것을, 없으면 기기 설정을 따른다
+function getSavedTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY);
+  } catch (error) {
+    return null;
+  }
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
+  themeToggle.setAttribute(
+    "aria-label",
+    theme === "dark" ? "라이트 모드로 바꾸기" : "다크 모드로 바꾸기"
+  );
+}
+
+const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+applyTheme(getSavedTheme() || (prefersDark ? "dark" : "light"));
+
+themeToggle.addEventListener("click", function () {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(next);
+  try {
+    localStorage.setItem(THEME_KEY, next);
+  } catch (error) {
+    // 저장이 막혀 있어도 이번 화면에서는 바뀐다
+  }
+});
