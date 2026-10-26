@@ -2,6 +2,7 @@ const input = document.getElementById("todo-input");
 const priorityInput = document.getElementById("todo-priority");
 const categoryInput = document.getElementById("todo-category");
 const categoryOptions = document.getElementById("category-options");
+const searchInput = document.getElementById("search-input");
 const statusButtons = document.querySelectorAll("[data-status]");
 const categoryFilter = document.getElementById("category-filter");
 const dateInput = document.getElementById("todo-date");
@@ -220,10 +221,12 @@ function getCategories() {
 
 // 지금 필터에 맞는 할 일만 골라낸다
 function getVisibleTodos() {
+  const query = searchInput.value.trim().toLowerCase();
   return todos.filter(function (todo) {
     if (statusFilter === "active" && todo.done) return false;
     if (statusFilter === "done" && !todo.done) return false;
     if (selectedCategory !== "" && todo.category !== selectedCategory) return false;
+    if (query !== "" && !todo.text.toLowerCase().includes(query)) return false;
     return true;
   });
 }
@@ -279,6 +282,8 @@ statusButtons.forEach(function (button) {
     render();
   });
 });
+
+searchInput.addEventListener("input", render);
 
 categoryFilter.addEventListener("change", function () {
   selectedCategory = categoryFilter.value;

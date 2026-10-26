@@ -306,3 +306,19 @@ button:active {
   font: inherit;
   font-weight: 700;
 }
+
+#search-input {
+  display: block;
+  width: 100%;
+  margin-top: 24px;
+  padding: 12px;
+  background: #fff;
+  border: var(--border);
+  box-shadow: var(--shadow);
+  font: inherit;
+}
+
+#search-input:focus {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
