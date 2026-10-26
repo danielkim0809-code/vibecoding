@@ -322,3 +322,31 @@ button:active {
   outline: 3px solid var(--blue);
   outline-offset: 2px;
 }
+
+.progress {
+  margin-bottom: 24px;
+}
+
+#progress-label {
+  margin: 0 0 8px;
+  font-weight: 800;
+}
+
+.progress-track {
+  height: 28px;
+  background: #fff;
+  border: var(--border);
+  box-shadow: var(--shadow);
+}
+
+.progress-fill {
+  width: 0;
+  height: 100%;
+  background: var(--pink);
+  border-right: var(--border);
+  transition: width 0.4s ease;
+}
+
+.progress-fill[style*="width: 0%"] {
+  border-right: 0;
+}

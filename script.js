@@ -3,6 +3,9 @@ const priorityInput = document.getElementById("todo-priority");
 const categoryInput = document.getElementById("todo-category");
 const categoryOptions = document.getElementById("category-options");
 const searchInput = document.getElementById("search-input");
+const progressLabel = document.getElementById("progress-label");
+const progressTrack = document.getElementById("progress-track");
+const progressFill = document.getElementById("progress-fill");
 const statusButtons = document.querySelectorAll("[data-status]");
 const categoryFilter = document.getElementById("category-filter");
 const dateInput = document.getElementById("todo-date");
@@ -219,6 +222,34 @@ function getCategories() {
   return Array.from(new Set(names)).sort();
 }
 
+// 오늘 날짜를 "2026-10-26" 모양으로 (이 기기의 시간 기준)
+function getTodayString() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return now.getFullYear() + "-" + month + "-" + day;
+}
+
+// 달성률: 오늘 마감인 할 일 기준, 오늘 마감이 없으면 전체 기준
+function updateProgress() {
+  const today = getTodayString();
+  let target = todos.filter(function (todo) {
+    return todo.date === today;
+  });
+  let title = "오늘 달성률";
+  if (target.length === 0) {
+    target = todos;
+    title = "전체 달성률";
+  }
+  const done = target.filter(function (todo) {
+    return todo.done;
+  }).length;
+  const percent = target.length === 0 ? 0 : Math.round((done / target.length) * 100);
+  progressLabel.textContent = title + " " + done + "/" + target.length + " · " + percent + "%";
+  progressFill.style.width = percent + "%";
+  progressTrack.setAttribute("aria-valuenow", String(percent));
+}
+
 // 지금 필터에 맞는 할 일만 골라낸다
 function getVisibleTodos() {
   const query = searchInput.value.trim().toLowerCase();
@@ -274,6 +305,7 @@ function render() {
     return !todo.done;
   }).length;
   remainingCount.textContent = "남은 할 일 " + remaining + "개";
+  updateProgress();
 }
 
 statusButtons.forEach(function (button) {
