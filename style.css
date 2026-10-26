@@ -813,3 +813,23 @@ html::after {
     animation: none;
   }
 }
+
+/* 왼쪽 위 구석의 작은 로고: 흰 반투명 칩 위에 놓아 라이트·다크 어디서든 보이게 한다 */
+.brand-logo {
+  position: absolute;
+  top: 10px;
+  left: 14px;
+  box-sizing: content-box;
+  width: auto;
+  height: 24px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* 로고가 대표 사진과 겹치지 않게 맨 위에 여백을 조금 더 준다 */
+body {
+  padding-top: 52px;
+}
