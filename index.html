@@ -12,13 +12,14 @@
     <button type="button" id="theme-toggle" aria-label="다크 모드로 바꾸기">🌙</button>
   </header>
 
-  <section class="progress">
+  <section class="progress glass">
     <p id="progress-label">오늘 달성률 0/0 · 0%</p>
     <div class="progress-track" id="progress-track" role="progressbar" aria-labelledby="progress-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
       <div class="progress-fill" id="progress-fill"></div>
     </div>
   </section>
 
+  <section class="add-form glass">
   <input type="text" id="todo-input" placeholder="할 일을 적어 주세요">
   <div class="when">
     <label>우선순위
@@ -37,7 +38,9 @@
   </div>
 
   <button type="button" id="add-button">추가</button>
+  </section>
 
+  <section class="tools glass">
   <input type="search" id="search-input" placeholder="할 일 검색" aria-label="할 일 검색">
 
   <div class="filters">
@@ -50,6 +53,7 @@
       <option value="">전체 카테고리</option>
     </select>
   </div>
+  </section>
 
   <p id="remaining-count">남은 할 일 0개</p>
 
