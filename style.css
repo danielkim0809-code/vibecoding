@@ -211,3 +211,15 @@ button:active {
   box-shadow: var(--shadow);
   font: inherit;
 }
+
+.category-tag {
+  padding: 2px 8px;
+  background: #fff;
+  border: var(--border);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.priority-high .category-tag {
+  background: var(--yellow);
+}

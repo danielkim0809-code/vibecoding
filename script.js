@@ -1,5 +1,7 @@
 const input = document.getElementById("todo-input");
 const priorityInput = document.getElementById("todo-priority");
+const categoryInput = document.getElementById("todo-category");
+const categoryOptions = document.getElementById("category-options");
 const dateInput = document.getElementById("todo-date");
 const timeInput = document.getElementById("todo-time");
 const addButton = document.getElementById("add-button");
@@ -9,7 +11,7 @@ const remainingCount = document.getElementById("remaining-count");
 
 const STORAGE_KEY = "todos";
 
-// 할 일 모음: { id, text, done, priority, date, time } (priority는 high·mid·low, date·time은 비어 있을 수 있다)
+// 할 일 모음: { id, text, done, priority, category, date, time } (priority는 high·mid·low, category·date·time은 비어 있을 수 있다)
 const PRIORITY_LABELS = { high: "높음", mid: "중간", low: "낮음" };
 let todos = loadTodos();
 
@@ -24,6 +26,7 @@ function loadTodos() {
         todo.priority = todo.important ? "high" : "mid";
       }
       delete todo.important;
+      todo.category = todo.category || "";
       return todo;
     });
   } catch (error) {
@@ -80,6 +83,11 @@ function createTodoItem(todo) {
   badge.className = "priority-badge";
   badge.textContent = PRIORITY_LABELS[todo.priority];
 
+  const tag = document.createElement("small");
+  tag.className = "category-tag";
+  tag.textContent = "#" + todo.category;
+  tag.hidden = todo.category === "";
+
   const when = document.createElement("small");
   when.className = "when-text";
   when.textContent = formatWhen(todo);
@@ -96,8 +104,20 @@ function createTodoItem(todo) {
     render();
   });
 
-  item.append(checkbox, label, badge, when, deleteButton);
+  item.append(checkbox, label, badge, tag, when, deleteButton);
   return item;
+}
+
+// 쓰고 있는 카테고리 이름들 (가나다 순)
+function getCategories() {
+  const names = todos
+    .map(function (todo) {
+      return todo.category;
+    })
+    .filter(function (name) {
+      return name !== "";
+    });
+  return Array.from(new Set(names)).sort();
 }
 
 // 화면을 할 일 모음에 맞게 다시 그린다
@@ -107,6 +127,13 @@ function render() {
   const remaining = todos.filter(function (todo) {
     return !todo.done;
   }).length;
+  categoryOptions.replaceChildren(
+    ...getCategories().map(function (name) {
+      const option = document.createElement("option");
+      option.value = name;
+      return option;
+    })
+  );
   remainingCount.textContent = "남은 할 일 " + remaining + "개";
 }
 
@@ -122,12 +149,14 @@ addButton.addEventListener("click", function () {
     text: text,
     done: false,
     priority: priorityInput.value,
+    category: categoryInput.value.trim().replace(/^#/, ""),
     date: dateInput.value,
     time: timeInput.value,
   });
   saveTodos();
   input.value = "";
   priorityInput.value = "mid";
+  categoryInput.value = "";
   dateInput.value = "";
   timeInput.value = "";
   input.focus();

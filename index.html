@@ -18,8 +18,12 @@
         <option value="low">낮음</option>
       </select>
     </label>
-    <label>날짜 <input type="date" id="todo-date"></label>
-    <label>시간 <input type="time" id="todo-time"></label>
+    <label>카테고리
+      <input type="text" id="todo-category" list="category-options" placeholder="예: 공부">
+      <datalist id="category-options"></datalist>
+    </label>
+    <label>마감 날짜 <input type="date" id="todo-date"></label>
+    <label>마감 시간 <input type="time" id="todo-time"></label>
   </div>
 
   <button type="button" id="add-button">추가</button>
