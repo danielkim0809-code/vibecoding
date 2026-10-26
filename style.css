@@ -275,3 +275,34 @@ button:active {
   flex: 1;
   background: var(--yellow);
 }
+
+.filters {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.status-filters {
+  display: flex;
+  gap: 8px;
+}
+
+.status-filters button {
+  flex: 1;
+  padding: 8px 4px;
+  background: #fff;
+}
+
+.status-filters button[aria-pressed="true"] {
+  background: var(--pink);
+}
+
+#category-filter {
+  width: 100%;
+  padding: 10px;
+  background: #fff;
+  border: var(--border);
+  box-shadow: var(--shadow);
+  font: inherit;
+  font-weight: 700;
+}

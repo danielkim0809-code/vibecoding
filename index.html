@@ -28,6 +28,17 @@
 
   <button type="button" id="add-button">추가</button>
 
+  <div class="filters">
+    <div class="status-filters" role="group" aria-label="상태 필터">
+      <button type="button" data-status="all" aria-pressed="true">전체</button>
+      <button type="button" data-status="active" aria-pressed="false">진행 중</button>
+      <button type="button" data-status="done" aria-pressed="false">완료됨</button>
+    </div>
+    <select id="category-filter" aria-label="카테고리 필터">
+      <option value="">전체 카테고리</option>
+    </select>
+  </div>
+
   <p id="remaining-count">남은 할 일 0개</p>
 
   <ul id="todo-list">

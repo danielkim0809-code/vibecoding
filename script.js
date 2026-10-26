@@ -2,6 +2,8 @@ const input = document.getElementById("todo-input");
 const priorityInput = document.getElementById("todo-priority");
 const categoryInput = document.getElementById("todo-category");
 const categoryOptions = document.getElementById("category-options");
+const statusButtons = document.querySelectorAll("[data-status]");
+const categoryFilter = document.getElementById("category-filter");
 const dateInput = document.getElementById("todo-date");
 const timeInput = document.getElementById("todo-time");
 const addButton = document.getElementById("add-button");
@@ -15,6 +17,8 @@ const STORAGE_KEY = "todos";
 const PRIORITY_LABELS = { high: "높음", mid: "중간", low: "낮음" };
 let todos = loadTodos();
 let editingId = null; // 고치는 중인 할 일의 id (없으면 null)
+let statusFilter = "all"; // all · active · done
+let selectedCategory = ""; // 빈 글자면 전체 카테고리
 
 // 저장해 둔 할 일을 꺼낸다 (없거나 망가졌으면 빈 목록)
 function loadTodos() {
@@ -214,29 +218,72 @@ function getCategories() {
   return Array.from(new Set(names)).sort();
 }
 
+// 지금 필터에 맞는 할 일만 골라낸다
+function getVisibleTodos() {
+  return todos.filter(function (todo) {
+    if (statusFilter === "active" && todo.done) return false;
+    if (statusFilter === "done" && !todo.done) return false;
+    if (selectedCategory !== "" && todo.category !== selectedCategory) return false;
+    return true;
+  });
+}
+
 // 화면을 할 일 모음에 맞게 다시 그린다
 function render() {
+  const categories = getCategories();
+  if (selectedCategory !== "" && !categories.includes(selectedCategory)) {
+    selectedCategory = "";
+  }
+
+  const visible = getVisibleTodos().sort(compareTodos);
   list.replaceChildren(
-    ...todos
-      .slice()
-      .sort(compareTodos)
-      .map(function (todo) {
-        return todo.id === editingId ? createEditItem(todo) : createTodoItem(todo);
-      })
+    ...visible.map(function (todo) {
+      return todo.id === editingId ? createEditItem(todo) : createTodoItem(todo);
+    })
   );
-  emptyMessage.hidden = todos.length > 0;
-  const remaining = todos.filter(function (todo) {
-    return !todo.done;
-  }).length;
+
+  emptyMessage.hidden = visible.length > 0;
+  emptyMessage.textContent =
+    todos.length === 0 ? "아직 할 일이 없어요" : "조건에 맞는 할 일이 없어요";
+
+  statusButtons.forEach(function (button) {
+    button.setAttribute("aria-pressed", String(button.dataset.status === statusFilter));
+  });
+
+  const allOption = new Option("전체 카테고리", "");
+  categoryFilter.replaceChildren(
+    allOption,
+    ...categories.map(function (name) {
+      return new Option("#" + name, name);
+    })
+  );
+  categoryFilter.value = selectedCategory;
+
   categoryOptions.replaceChildren(
-    ...getCategories().map(function (name) {
+    ...categories.map(function (name) {
       const option = document.createElement("option");
       option.value = name;
       return option;
     })
   );
+
+  const remaining = todos.filter(function (todo) {
+    return !todo.done;
+  }).length;
   remainingCount.textContent = "남은 할 일 " + remaining + "개";
 }
+
+statusButtons.forEach(function (button) {
+  button.addEventListener("click", function () {
+    statusFilter = button.dataset.status;
+    render();
+  });
+});
+
+categoryFilter.addEventListener("change", function () {
+  selectedCategory = categoryFilter.value;
+  render();
+});
 
 // [추가] 버튼: 입력칸의 글을 목록에 넣고 입력칸을 비운다
 addButton.addEventListener("click", function () {
