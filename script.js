@@ -237,6 +237,7 @@ let lists = [];
 let activeListId = null;
 let todos = [];
 let loadState = "loading"; // loading · ready · error
+let loadErrorDetail = ""; // 불러오지 못했을 때의 이유 (화면에 짧게 보여 준다)
 let listFormMode = null; // 이름 입력칸이 열려 있으면 "new" 또는 "rename"
 let editingId = null; // 고치는 중인 할 일의 id (없으면 null)
 let justCheckedId = null; // 방금 체크한 할 일 (애니메이션용)
@@ -643,7 +644,8 @@ function render() {
   if (loadState === "loading") {
     emptyMessage.textContent = "불러오는 중이에요...";
   } else if (loadState === "error") {
-    emptyMessage.textContent = "불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.";
+    emptyMessage.textContent =
+      "불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요. (이유: " + loadErrorDetail + ")";
   } else {
     emptyMessage.textContent =
       todos.length === 0 ? "아직 할 일이 없어요" : "조건에 맞는 할 일이 없어요";
@@ -735,6 +737,7 @@ async function start() {
   } catch (error) {
     console.error(error);
     loadState = "error";
+    loadErrorDetail = String(error.message || error).slice(0, 200);
   }
   render();
 }
