@@ -567,13 +567,12 @@ button:active {
   color: #fff;
 }
 
-/* 제목 위 대표 사진: 휴대폰 폭에 맞게 줄이고 모서리를 둥글게.
-   흰 배경은 바탕색과 곱해져(multiply) 사라진다. 다크 모드에서는 노란 판 위에 놓아 같은 효과를 낸다 */
+/* 제목 위 대표 사진: 휴대폰 폭에 맞게 줄인다.
+   흰 배경을 지운 뒤(.cutout)에는 둥근 판 대신 피카츄 윤곽을 따라 그림자가 생긴다 */
 .hero {
   width: 100%;
   max-width: 320px;
   margin: 0 auto 16px;
-  overflow: hidden;
   border-radius: 24px;
 }
 
@@ -581,13 +580,16 @@ button:active {
   display: block;
   width: 100%;
   height: auto;
-  mix-blend-mode: multiply;
+  border-radius: 24px;
 }
 
-:root[data-theme="dark"] .hero {
-  isolation: isolate;
-  background: #ffd733;
-  box-shadow: 0 0 32px rgba(255, 215, 51, 0.6);
+.hero-photo.cutout {
+  border-radius: 0;
+  filter: drop-shadow(0 8px 14px rgba(120, 80, 0, 0.3));
+}
+
+:root[data-theme="dark"] .hero-photo.cutout {
+  filter: drop-shadow(0 0 18px rgba(255, 215, 51, 0.45));
 }
 
 /* 피카츄 장식: 제목 앞 번개, 대표 사진의 노란 빛 */

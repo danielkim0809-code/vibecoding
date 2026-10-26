@@ -775,3 +775,84 @@ themeToggle.addEventListener("click", function () {
     // 저장이 막혀 있어도 이번 화면에서는 바뀐다
   }
 });
+
+// 대표 사진: 바깥쪽 흰 배경만 투명하게 지운다 (사진의 색은 건드리지 않는다)
+function removeWhiteBackground(photo) {
+  const source = new Image();
+  source.crossOrigin = "anonymous";
+  source.onload = function () {
+    try {
+      const scale = Math.min(1, 640 / source.naturalWidth);
+      const width = Math.round(source.naturalWidth * scale);
+      const height = Math.round(source.naturalHeight * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      context.drawImage(source, 0, 0, width, height);
+      const image = context.getImageData(0, 0, width, height); // 사진을 읽을 수 없으면 여기서 멈춘다
+      const data = image.data;
+
+      const isWhite = function (pixel) {
+        const at = pixel * 4;
+        return data[at + 3] > 0 && data[at] >= 235 && data[at + 1] >= 235 && data[at + 2] >= 235;
+      };
+
+      // 사진 가장자리에서 시작해, 이어져 있는 흰색만 배경으로 본다
+      const isBackground = new Uint8Array(width * height);
+      const queue = [];
+      const push = function (pixel) {
+        if (!isBackground[pixel] && isWhite(pixel)) {
+          isBackground[pixel] = 1;
+          queue.push(pixel);
+        }
+      };
+      for (let x = 0; x < width; x += 1) {
+        push(x);
+        push((height - 1) * width + x);
+      }
+      for (let y = 0; y < height; y += 1) {
+        push(y * width);
+        push(y * width + width - 1);
+      }
+      for (let head = 0; head < queue.length; head += 1) {
+        const pixel = queue[head];
+        const x = pixel % width;
+        if (x > 0) push(pixel - 1);
+        if (x < width - 1) push(pixel + 1);
+        if (pixel >= width) push(pixel - width);
+        if (pixel < width * (height - 1)) push(pixel + width);
+      }
+
+      // 배경은 투명하게, 배경과 맞닿은 밝은 가장자리는 반쯤 투명하게 (색은 그대로, 투명도만 바꾼다)
+      const hasBackgroundNeighbor = function (pixel) {
+        const x = pixel % width;
+        return (
+          (x > 0 && isBackground[pixel - 1]) ||
+          (x < width - 1 && isBackground[pixel + 1]) ||
+          (pixel >= width && isBackground[pixel - width]) ||
+          (pixel < width * (height - 1) && isBackground[pixel + width])
+        );
+      };
+      for (let pixel = 0; pixel < width * height; pixel += 1) {
+        const at = pixel * 4;
+        if (isBackground[pixel]) {
+          data[at + 3] = 0;
+        } else if (hasBackgroundNeighbor(pixel)) {
+          const lightest = Math.min(data[at], data[at + 1], data[at + 2]);
+          if (lightest > 200) {
+            data[at + 3] = Math.round((255 * (255 - lightest)) / 55);
+          }
+        }
+      }
+      context.putImageData(image, 0, 0);
+      photo.src = canvas.toDataURL("image/png");
+      photo.classList.add("cutout");
+    } catch (error) {
+      console.warn("대표 사진의 배경을 지우지 못해 원래 사진을 보여 줘요.", error);
+    }
+  };
+  source.src = photo.src;
+}
+
+removeWhiteBackground(document.querySelector(".hero-photo"));
