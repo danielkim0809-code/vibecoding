@@ -26,6 +26,17 @@
 
   <nav id="list-tabs" class="list-tabs" role="tablist" aria-label="상황별 목록"></nav>
 
+  <div class="list-tools">
+    <button type="button" id="new-list-button">+ 새 목록</button>
+    <button type="button" id="rename-list-button">이름 변경</button>
+    <button type="button" id="delete-list-button">목록 삭제</button>
+  </div>
+  <form id="list-form" class="list-form glass" hidden>
+    <input type="text" id="list-name-input" maxlength="20" placeholder="목록 이름 (예: 캠핑용)" aria-label="목록 이름">
+    <button type="submit" id="list-form-ok">확인</button>
+    <button type="button" id="list-form-cancel">취소</button>
+  </form>
+
   <section class="progress glass">
     <p id="progress-label">오늘 달성률 0/0 · 0%</p>
     <div class="progress-track" id="progress-track" role="progressbar" aria-labelledby="progress-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">

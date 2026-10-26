@@ -8,6 +8,12 @@ const progressTrack = document.getElementById("progress-track");
 const progressFill = document.getElementById("progress-fill");
 const title = document.querySelector("h1");
 const listTabs = document.getElementById("list-tabs");
+const newListButton = document.getElementById("new-list-button");
+const renameListButton = document.getElementById("rename-list-button");
+const deleteListButton = document.getElementById("delete-list-button");
+const listForm = document.getElementById("list-form");
+const listNameInput = document.getElementById("list-name-input");
+const listFormCancel = document.getElementById("list-form-cancel");
 const themeToggle = document.getElementById("theme-toggle");
 const statusButtons = document.querySelectorAll("[data-status]");
 const statusGroup = document.querySelector(".status-filters");
@@ -162,6 +168,7 @@ function getActiveList() {
 }
 
 let todos = getActiveList().todos;
+let listFormMode = null; // 이름 입력칸이 열려 있으면 "new" 또는 "rename"
 let editingId = null; // 고치는 중인 할 일의 id (없으면 null)
 let justCheckedId = null; // 방금 체크한 할 일 (애니메이션용)
 let statusFilter = "all"; // all · active · done
@@ -185,13 +192,72 @@ function switchList(id) {
   statusFilter = "all";
   selectedCategory = "";
   searchInput.value = "";
+  closeListForm();
   saveTodos();
   render();
 }
 
+// 목록 이름 입력칸을 열고 닫는다
+function openListForm(mode) {
+  listFormMode = mode;
+  listNameInput.value = mode === "rename" ? getActiveList().name : "";
+  listForm.hidden = false;
+  listNameInput.focus();
+  listNameInput.select();
+}
+
+function closeListForm() {
+  listFormMode = null;
+  listForm.hidden = true;
+}
+
+newListButton.addEventListener("click", function () {
+  openListForm("new");
+});
+
+renameListButton.addEventListener("click", function () {
+  openListForm("rename");
+});
+
+listFormCancel.addEventListener("click", closeListForm);
+
+// [확인]: 새 목록을 만들거나 지금 목록의 이름을 바꾼다 (이름이 비었으면 아무것도 안 한다)
+listForm.addEventListener("submit", function (event) {
+  event.preventDefault();
+  const name = listNameInput.value.trim();
+  if (name === "") {
+    listNameInput.focus();
+    return;
+  }
+  if (listFormMode === "rename") {
+    getActiveList().name = name;
+    saveTodos();
+  } else {
+    const created = { id: "list-" + Date.now(), name: name, todos: [] };
+    lists.push(created);
+    switchList(created.id);
+  }
+  closeListForm();
+  render();
+});
+
+// [목록 삭제]: 확인을 받고 지운다 (하나만 남으면 지울 수 없다)
+deleteListButton.addEventListener("click", function () {
+  if (lists.length <= 1) return;
+  const target = getActiveList();
+  if (!window.confirm("'" + target.name + "' 목록과 안의 할 일이 모두 지워져요. 지울까요?")) {
+    return;
+  }
+  const index = lists.indexOf(target);
+  lists.splice(index, 1);
+  closeListForm();
+  switchList(lists[Math.min(index, lists.length - 1)].id);
+});
+
 // 맨 위 제목과 목록 탭을 지금 상태에 맞게 다시 그린다
 function renderTabs() {
   title.textContent = getActiveList().name;
+  deleteListButton.disabled = lists.length <= 1;
   listTabs.replaceChildren(
     ...lists.map(function (item) {
       const tab = document.createElement("button");
