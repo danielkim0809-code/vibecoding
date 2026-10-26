@@ -14,6 +14,7 @@ const STORAGE_KEY = "todos";
 // 할 일 모음: { id, text, done, priority, category, date, time } (priority는 high·mid·low, category·date·time은 비어 있을 수 있다)
 const PRIORITY_LABELS = { high: "높음", mid: "중간", low: "낮음" };
 let todos = loadTodos();
+let editingId = null; // 고치는 중인 할 일의 id (없으면 null)
 
 // 저장해 둔 할 일을 꺼낸다 (없거나 망가졌으면 빈 목록)
 function loadTodos() {
@@ -93,6 +94,14 @@ function createTodoItem(todo) {
   when.textContent = formatWhen(todo);
   when.hidden = when.textContent === "";
 
+  const editButton = document.createElement("button");
+  editButton.type = "button";
+  editButton.textContent = "수정";
+  editButton.addEventListener("click", function () {
+    editingId = todo.id;
+    render();
+  });
+
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
   deleteButton.textContent = "삭제";
@@ -100,11 +109,96 @@ function createTodoItem(todo) {
     todos = todos.filter(function (other) {
       return other.id !== todo.id;
     });
+    if (editingId === todo.id) editingId = null;
     saveTodos();
     render();
   });
 
-  item.append(checkbox, label, badge, tag, when, deleteButton);
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  actions.append(editButton, deleteButton);
+
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  meta.append(badge, tag, when);
+
+  item.append(checkbox, label, actions, meta);
+  return item;
+}
+
+// 고치는 중인 줄: 입력칸들 + [저장] [취소]
+function createEditItem(todo) {
+  const item = document.createElement("li");
+  item.classList.add("editing");
+
+  const form = document.createElement("form");
+  form.className = "edit-form";
+
+  const textField = document.createElement("input");
+  textField.type = "text";
+  textField.value = todo.text;
+  textField.setAttribute("aria-label", "할 일 내용");
+
+  const prioritySelect = document.createElement("select");
+  prioritySelect.setAttribute("aria-label", "우선순위");
+  Object.keys(PRIORITY_LABELS).forEach(function (key) {
+    const option = document.createElement("option");
+    option.value = key;
+    option.textContent = PRIORITY_LABELS[key];
+    prioritySelect.append(option);
+  });
+  prioritySelect.value = todo.priority;
+
+  const categoryField = document.createElement("input");
+  categoryField.type = "text";
+  categoryField.value = todo.category;
+  categoryField.setAttribute("list", "category-options");
+  categoryField.setAttribute("placeholder", "카테고리");
+  categoryField.setAttribute("aria-label", "카테고리");
+
+  const dateField = document.createElement("input");
+  dateField.type = "date";
+  dateField.value = todo.date;
+  dateField.setAttribute("aria-label", "마감 날짜");
+
+  const timeField = document.createElement("input");
+  timeField.type = "time";
+  timeField.value = todo.time;
+  timeField.setAttribute("aria-label", "마감 시간");
+
+  const saveButton = document.createElement("button");
+  saveButton.type = "button";
+  saveButton.textContent = "저장";
+  saveButton.addEventListener("click", function () {
+    const text = textField.value.trim();
+    if (text === "") {
+      textField.focus();
+      return;
+    }
+    todo.text = text;
+    todo.priority = prioritySelect.value;
+    todo.category = categoryField.value.trim().replace(/^#/, "");
+    todo.date = dateField.value;
+    todo.time = timeField.value;
+    editingId = null;
+    saveTodos();
+    render();
+  });
+
+  const cancelButton = document.createElement("button");
+  cancelButton.type = "button";
+  cancelButton.textContent = "취소";
+  cancelButton.addEventListener("click", function () {
+    editingId = null;
+    render();
+  });
+
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  actions.append(saveButton, cancelButton);
+
+  form.append(textField, prioritySelect, categoryField, dateField, timeField, actions);
+  item.append(form);
   return item;
 }
 
@@ -122,7 +216,14 @@ function getCategories() {
 
 // 화면을 할 일 모음에 맞게 다시 그린다
 function render() {
-  list.replaceChildren(...todos.slice().sort(compareTodos).map(createTodoItem));
+  list.replaceChildren(
+    ...todos
+      .slice()
+      .sort(compareTodos)
+      .map(function (todo) {
+        return todo.id === editingId ? createEditItem(todo) : createTodoItem(todo);
+      })
+  );
   emptyMessage.hidden = todos.length > 0;
   const remaining = todos.filter(function (todo) {
     return !todo.done;

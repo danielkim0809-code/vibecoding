@@ -97,6 +97,10 @@ button:active {
   background: var(--pink);
 }
 
+#todo-list li .actions button:first-child {
+  background: var(--yellow);
+}
+
 #todo-list input[type="checkbox"] {
   width: 24px;
   height: 24px;
@@ -176,7 +180,8 @@ button:active {
 }
 
 #todo-list li span {
-  flex: 1 1 8em;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 #todo-list li.priority-high {
@@ -221,5 +226,52 @@ button:active {
 }
 
 .priority-high .category-tag {
+  background: var(--yellow);
+}
+
+#todo-list li .actions {
+  display: flex;
+  gap: 8px;
+}
+
+#todo-list li .meta {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-left: 36px;
+}
+
+#todo-list li .meta small:empty {
+  display: none;
+}
+
+#todo-list li.editing {
+  display: block;
+  background: var(--blue);
+}
+
+.edit-form {
+  display: grid;
+  gap: 8px;
+}
+
+.edit-form input,
+.edit-form select {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  background: #fff;
+  border: var(--border);
+  font: inherit;
+}
+
+.edit-form .actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-form .actions button {
+  flex: 1;
   background: var(--yellow);
 }
