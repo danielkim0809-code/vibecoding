@@ -14,6 +14,15 @@ const deleteListButton = document.getElementById("delete-list-button");
 const listForm = document.getElementById("list-form");
 const listNameInput = document.getElementById("list-name-input");
 const listFormCancel = document.getElementById("list-form-cancel");
+const levelCard = document.getElementById("level-card");
+const levelIcon = document.getElementById("level-icon");
+const levelStage = document.getElementById("level-stage");
+const levelNumber = document.getElementById("level-number");
+const levelXp = document.getElementById("level-xp");
+const levelTrack = document.getElementById("level-track");
+const levelFill = document.getElementById("level-fill");
+const levelNext = document.getElementById("level-next");
+const levelMessage = document.getElementById("level-message");
 const themeToggle = document.getElementById("theme-toggle");
 const statusButtons = document.querySelectorAll("[data-status]");
 const statusGroup = document.querySelector(".status-filters");
@@ -34,6 +43,7 @@ const OLD_TODOS_KEY = "todos";
 const OLD_LISTS_KEY = "lists";
 const ACTIVE_LIST_KEY = "activeList";
 const THEME_KEY = "theme";
+const TRAINER_KEY = "trainerXp"; // 경험치를 이 브라우저에도 남겨 둔다 (trainer 표가 아직 없을 때를 위해)
 
 // 할 일 모음: { id, text, done, priority, category, date, time, createdAt } (priority는 high·mid·low, category·date·time은 비어 있을 수 있다)
 const PRIORITY_LABELS = { high: "높음", mid: "중간", low: "낮음" };
@@ -231,6 +241,125 @@ async function fetchLists() {
         .map(fromRow),
     };
   });
+}
+
+// 피카츄 진화: 할 일을 체크하면 경험치가 오르고, 60 XP마다 레벨이 오른다
+const XP_PER_LEVEL = 60;
+const XP_BY_PRIORITY = { high: 30, mid: 20, low: 10 };
+const STAGES = [
+  { minLevel: 1, name: "피츄", icon: "🐭" },
+  { minLevel: 5, name: "피카츄", icon: "⚡" },
+  { minLevel: 10, name: "라이츄", icon: "🌩️" },
+];
+
+let xp = 0;
+let trainerId = null; // Supabase trainer 표의 줄 번호 (표가 없으면 null)
+let messageTimer = null;
+let effectTimer = null;
+
+function levelOf(points) {
+  return Math.floor(points / XP_PER_LEVEL) + 1;
+}
+
+function stageOf(level) {
+  return STAGES.filter(function (stage) {
+    return level >= stage.minLevel;
+  }).pop();
+}
+
+// 경험치를 불러온다: trainer 표가 있으면 거기서, 없으면 이 브라우저에 남겨 둔 값으로
+async function loadTrainer() {
+  const localXp = Number(readStorage(TRAINER_KEY)) || 0;
+  try {
+    let rows = await api("trainer?select=*&order=id.asc&limit=1");
+    if (rows.length === 0) {
+      rows = await api("trainer", "POST", [{ xp: localXp }]);
+    }
+    trainerId = rows[0].id;
+    xp = Number(rows[0].xp) || 0;
+  } catch (error) {
+    console.warn("trainer 표를 쓸 수 없어 경험치를 이 브라우저에만 저장해요.", error);
+    trainerId = null;
+    xp = localXp;
+  }
+}
+
+function saveXp() {
+  try {
+    localStorage.setItem(TRAINER_KEY, JSON.stringify(xp));
+  } catch (error) {
+    // 저장이 막혀 있어도 이번 화면에서는 그대로 쓴다
+  }
+  if (trainerId !== null) {
+    api("trainer?id=eq." + encodeURIComponent(trainerId), "PATCH", { xp: xp }).catch(function (error) {
+      console.warn("경험치를 표에 저장하지 못했어요.", error);
+    });
+  }
+}
+
+// 카드의 단계 이름, 레벨, 경험치 막대를 지금 경험치에 맞게 그린다
+function updateLevelCard() {
+  const level = levelOf(xp);
+  const stage = stageOf(level);
+  const inLevel = xp % XP_PER_LEVEL;
+  levelIcon.textContent = stage.icon;
+  levelStage.textContent = stage.name;
+  levelNumber.textContent = "Lv." + level;
+  levelXp.textContent = inLevel + "/" + XP_PER_LEVEL + " XP";
+  levelFill.style.width = Math.round((inLevel / XP_PER_LEVEL) * 100) + "%";
+  levelTrack.setAttribute("aria-valuenow", String(inLevel));
+  const next = STAGES.find(function (candidate) {
+    return candidate.minLevel > level;
+  });
+  levelNext.textContent = next
+    ? "Lv." + next.minLevel + "에 " + next.name + "로 진화!"
+    : "최종 진화! 라이츄";
+}
+
+function showLevelMessage(text, milliseconds, kind) {
+  levelMessage.textContent = text;
+  levelMessage.dataset.kind = kind || "xp";
+  levelMessage.hidden = false;
+  clearTimeout(messageTimer);
+  messageTimer = setTimeout(function () {
+    levelMessage.hidden = true;
+  }, milliseconds);
+}
+
+// 카드를 번쩍이게 한다 (같은 효과를 연달아 보여 줄 수 있게 다시 시작한다)
+function flashCard(effect) {
+  levelCard.classList.remove("level-up", "evolve");
+  void levelCard.offsetWidth;
+  levelCard.classList.add(effect);
+  clearTimeout(effectTimer);
+  effectTimer = setTimeout(function () {
+    levelCard.classList.remove("level-up", "evolve");
+  }, 1300);
+}
+
+// 경험치를 더하거나 뺀다 (0 아래로는 내려가지 않는다)
+function changeXp(delta) {
+  const before = xp;
+  const oldLevel = levelOf(before);
+  const oldStage = stageOf(oldLevel);
+  xp = Math.max(0, xp + delta);
+  const change = xp - before;
+  if (change === 0) return;
+  saveXp();
+  updateLevelCard();
+  const newLevel = levelOf(xp);
+  const newStage = stageOf(newLevel);
+  if (change < 0) {
+    showLevelMessage(change + " XP", 1500, "xp");
+  } else if (newStage !== oldStage) {
+    flashCard("evolve");
+    showLevelMessage("진화했다! " + oldStage.name + " → " + newStage.name + " ⚡", 4500, "evolve");
+  } else if (newLevel > oldLevel) {
+    flashCard("level-up");
+    showLevelMessage("레벨 업! Lv." + newLevel + " ⚡", 3500, "level-up");
+  } else {
+    showLevelMessage("+" + change + " XP ⚡", 1500, "xp");
+  }
 }
 
 let lists = [];
@@ -436,6 +565,7 @@ function createTodoItem(todo) {
   checkbox.addEventListener("change", function () {
     todo.done = checkbox.checked;
     justCheckedId = todo.done ? todo.id : null;
+    changeXp((todo.done ? 1 : -1) * XP_BY_PRIORITY[todo.priority]);
     render();
     api("todos?id=eq." + encodeURIComponent(todo.id), "PATCH", { done: todo.done }).catch(function (error) {
       recover("체크 상태를 저장하지 못했어요.", error);
@@ -628,6 +758,7 @@ function getVisibleTodos() {
 // 화면을 할 일 모음에 맞게 다시 그린다
 function render() {
   renderTabs();
+  updateLevelCard();
   const categories = getCategories();
   if (selectedCategory !== "" && !categories.includes(selectedCategory)) {
     selectedCategory = "";
@@ -731,6 +862,7 @@ addButton.addEventListener("click", async function () {
 
 // 처음 화면: 표에서 불러오는 동안은 안내 글만 보여 준다
 async function start() {
+  await loadTrainer();
   try {
     applyLists(await fetchLists());
     loadState = "ready";

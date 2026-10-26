@@ -657,3 +657,147 @@ html::after {
   height: 134px;
   transform: rotate(22deg);
 }
+
+/* 피카츄 진화 카드 */
+.level-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.level-icon {
+  display: grid;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  background: var(--pika-yellow);
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.level-name {
+  flex: 1;
+  font-size: 1.1rem;
+}
+
+.level-name span {
+  margin-left: 4px;
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.level-xp {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.level-track {
+  height: 10px;
+  overflow: hidden;
+  background: var(--field);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.level-fill {
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.6s var(--spring);
+}
+
+.level-next {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.level-message {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 20;
+  max-width: 90vw;
+  margin: 0;
+  padding: 8px 18px;
+  background: var(--pika-yellow);
+  border: 2px solid #2b2118;
+  border-radius: 999px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  color: #2b2118;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: toast-in 0.45s var(--spring);
+  pointer-events: none;
+}
+
+.level-message[data-kind="level-up"],
+.level-message[data-kind="evolve"] {
+  padding: 10px 22px;
+  background: var(--accent);
+  border-color: #2b2118;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -24px) scale(0.9);
+  }
+}
+
+/* 레벨 업·진화: 노란 빛이 번쩍하고 카드가 톡 커졌다 돌아온다 */
+.level.level-up {
+  animation: level-pop 0.7s var(--spring), level-flash 1.2s ease-out;
+}
+
+.level.evolve {
+  animation: level-pop-big 0.9s var(--spring), level-flash-big 1.3s ease-out;
+}
+
+@keyframes level-pop {
+  40% {
+    transform: scale(1.04);
+  }
+}
+
+@keyframes level-pop-big {
+  40% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes level-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 215, 51, 0.9);
+  }
+  100% {
+    box-shadow: 0 0 40px 18px rgba(255, 215, 51, 0);
+  }
+}
+
+@keyframes level-flash-big {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 215, 51, 1), 0 0 0 0 rgba(227, 53, 13, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 70px 36px rgba(255, 215, 51, 0), 0 0 40px 20px rgba(227, 53, 13, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level.level-up,
+  .level.evolve,
+  .level-message {
+    animation: none;
+  }
+}

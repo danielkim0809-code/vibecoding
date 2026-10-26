@@ -41,6 +41,19 @@
     <button type="button" id="list-form-cancel">취소</button>
   </form>
 
+  <section class="level glass" id="level-card" aria-label="피카츄 진화">
+    <div class="level-top">
+      <span class="level-icon" id="level-icon" aria-hidden="true">🐭</span>
+      <div class="level-name"><strong id="level-stage">피츄</strong> <span id="level-number">Lv.1</span></div>
+      <span class="level-xp" id="level-xp">0/60 XP</span>
+    </div>
+    <div class="level-track" id="level-track" role="progressbar" aria-label="경험치" aria-valuemin="0" aria-valuemax="60" aria-valuenow="0">
+      <div class="level-fill" id="level-fill"></div>
+    </div>
+    <p class="level-next" id="level-next">Lv.5에 피카츄로 진화!</p>
+  </section>
+  <p class="level-message" id="level-message" role="status" hidden></p>
+
   <section class="progress glass">
     <p id="progress-label">오늘 달성률 0/0 · 0%</p>
     <div class="progress-track" id="progress-track" role="progressbar" aria-labelledby="progress-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
