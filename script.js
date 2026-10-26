@@ -6,6 +6,8 @@ const searchInput = document.getElementById("search-input");
 const progressLabel = document.getElementById("progress-label");
 const progressTrack = document.getElementById("progress-track");
 const progressFill = document.getElementById("progress-fill");
+const title = document.querySelector("h1");
+const listTabs = document.getElementById("list-tabs");
 const themeToggle = document.getElementById("theme-toggle");
 const statusButtons = document.querySelectorAll("[data-status]");
 const statusGroup = document.querySelector(".status-filters");
@@ -17,42 +19,193 @@ const list = document.getElementById("todo-list");
 const emptyMessage = document.getElementById("empty-message");
 const remainingCount = document.getElementById("remaining-count");
 
-const STORAGE_KEY = "todos";
+const STORAGE_KEY = "todos"; // 목록이 하나였을 때 쓰던 저장 키 (예전 할 일을 옮겨 올 때만 읽는다)
+const LISTS_KEY = "lists";
 const THEME_KEY = "theme";
 
 // 할 일 모음: { id, text, done, priority, category, date, time } (priority는 high·mid·low, category·date·time은 비어 있을 수 있다)
 const PRIORITY_LABELS = { high: "높음", mid: "중간", low: "낮음" };
-let todos = loadTodos();
+
+// 처음 열었을 때 들어 있는 예시 목록: [내용, 카테고리, 우선순위]
+const SEED_LISTS = [
+  { name: "오늘 할 일", items: [] },
+  {
+    name: "여행용",
+    items: [
+      ["여권", "서류", "high"],
+      ["항공권·숙소 예약 확인", "서류", "high"],
+      ["환전·카드 챙기기", "서류", "high"],
+      ["충전기", "전자기기", "mid"],
+      ["보조배터리", "전자기기", "mid"],
+      ["멀티 어댑터", "전자기기", "low"],
+      ["칫솔·치약", "세면", "mid"],
+      ["세안용품", "세면", "mid"],
+      ["상비약", "세면", "mid"],
+      ["속옷·양말", "옷", "mid"],
+      ["갈아입을 옷", "옷", "mid"],
+      ["우산", "기타", "low"],
+    ],
+  },
+  {
+    name: "시험기간용",
+    items: [
+      ["시험 범위 정리", "공부", "high"],
+      ["기출문제 풀기", "공부", "high"],
+      ["오답노트 만들기", "공부", "mid"],
+      ["요약 노트 한 번 더 읽기", "공부", "mid"],
+      ["신분증·수험표 챙기기", "준비", "high"],
+      ["필기구·계산기", "준비", "mid"],
+      ["일찍 자기", "건강", "mid"],
+      ["아침 먹기", "건강", "low"],
+    ],
+  },
+  {
+    name: "외출용",
+    items: [
+      ["지갑", "필수", "high"],
+      ["휴대폰·충전기", "필수", "high"],
+      ["열쇠", "필수", "high"],
+      ["마스크", "건강", "mid"],
+      ["우산", "날씨", "low"],
+      ["이어폰", "기타", "low"],
+      ["가스·전등 끄기", "집", "mid"],
+    ],
+  },
+  {
+    name: "장보기용",
+    items: [
+      ["우유", "식료품", "mid"],
+      ["달걀", "식료품", "mid"],
+      ["채소", "식료품", "mid"],
+      ["과일", "식료품", "low"],
+      ["빵", "식료품", "low"],
+      ["휴지", "생필품", "mid"],
+      ["세제", "생필품", "low"],
+    ],
+  },
+];
+
+// 저장된 할 일을 쓸 수 있는 모양으로 다듬는다
+function normalizeTodos(saved) {
+  if (!Array.isArray(saved)) return [];
+  // 예전에 별(important)로 저장한 것은 우선순위로 바꿔 이어 쓴다
+  return saved.map(function (todo) {
+    if (!PRIORITY_LABELS[todo.priority]) {
+      todo.priority = todo.important ? "high" : "mid";
+    }
+    delete todo.important;
+    todo.category = todo.category || "";
+    todo.date = todo.date || "";
+    todo.time = todo.time || "";
+    return todo;
+  });
+}
+
+function readStorage(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key));
+  } catch (error) {
+    return null;
+  }
+}
+
+// 예시 목록을 만든다. 예전에 쓰던 할 일이 있으면 "오늘 할 일" 목록으로 옮겨 온다
+function createSeedLists() {
+  const legacy = normalizeTodos(readStorage(STORAGE_KEY));
+  let nextId = Date.now();
+  return SEED_LISTS.map(function (seed, index) {
+    const seedTodos = seed.items.map(function (item) {
+      nextId += 1;
+      return {
+        id: nextId,
+        text: item[0],
+        done: false,
+        priority: item[2],
+        category: item[1],
+        date: "",
+        time: "",
+      };
+    });
+    return {
+      id: "list-" + (nextId + index),
+      name: seed.name,
+      todos: index === 0 ? legacy : seedTodos,
+    };
+  });
+}
+
+// 저장해 둔 목록들을 꺼낸다 (없거나 망가졌으면 예시 목록으로 시작)
+function loadLists() {
+  const saved = readStorage(LISTS_KEY);
+  if (saved && Array.isArray(saved.lists) && saved.lists.length > 0) {
+    saved.lists.forEach(function (savedList) {
+      savedList.todos = normalizeTodos(savedList.todos);
+    });
+    return saved;
+  }
+  const seeded = createSeedLists();
+  return { lists: seeded, activeId: seeded[0].id };
+}
+
+const state = loadLists();
+let lists = state.lists;
+let activeListId = lists.some(function (item) {
+  return item.id === state.activeId;
+})
+  ? state.activeId
+  : lists[0].id;
+
+function getActiveList() {
+  return lists.find(function (item) {
+    return item.id === activeListId;
+  });
+}
+
+let todos = getActiveList().todos;
 let editingId = null; // 고치는 중인 할 일의 id (없으면 null)
 let justCheckedId = null; // 방금 체크한 할 일 (애니메이션용)
 let statusFilter = "all"; // all · active · done
 let selectedCategory = ""; // 빈 글자면 전체 카테고리
 
-// 저장해 둔 할 일을 꺼낸다 (없거나 망가졌으면 빈 목록)
-function loadTodos() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (!Array.isArray(saved)) return [];
-    // 예전에 별(important)로 저장한 것은 우선순위로 바꿔 이어 쓴다
-    return saved.map(function (todo) {
-      if (!PRIORITY_LABELS[todo.priority]) {
-        todo.priority = todo.important ? "high" : "mid";
-      }
-      delete todo.important;
-      todo.category = todo.category || "";
-      return todo;
-    });
-  } catch (error) {
-    return [];
-  }
-}
-
+// 지금 목록의 할 일을 목록에 반영하고, 모든 목록을 저장한다
 function saveTodos() {
+  getActiveList().todos = todos;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    localStorage.setItem(LISTS_KEY, JSON.stringify({ lists: lists, activeId: activeListId }));
   } catch (error) {
     // 저장이 막혀 있어도 화면은 계속 쓸 수 있다
   }
+}
+
+// 다른 목록으로 바꾼다 (필터와 검색은 처음 상태로)
+function switchList(id) {
+  activeListId = id;
+  todos = getActiveList().todos;
+  editingId = null;
+  statusFilter = "all";
+  selectedCategory = "";
+  searchInput.value = "";
+  saveTodos();
+  render();
+}
+
+// 맨 위 제목과 목록 탭을 지금 상태에 맞게 다시 그린다
+function renderTabs() {
+  title.textContent = getActiveList().name;
+  listTabs.replaceChildren(
+    ...lists.map(function (item) {
+      const tab = document.createElement("button");
+      tab.type = "button";
+      tab.className = "list-tab";
+      tab.setAttribute("role", "tab");
+      tab.setAttribute("aria-selected", String(item.id === activeListId));
+      tab.textContent = item.name;
+      tab.addEventListener("click", function () {
+        switchList(item.id);
+      });
+      return tab;
+    })
+  );
 }
 
 // 중요(높음) 먼저, 그다음 날짜 → 시간 순서로 비교한다 (날짜 없음은 맨 아래, 같은 날짜에서 시간 없음은 그날 맨 아래)
@@ -276,6 +429,7 @@ function getVisibleTodos() {
 
 // 화면을 할 일 모음에 맞게 다시 그린다
 function render() {
+  renderTabs();
   const categories = getCategories();
   if (selectedCategory !== "" && !categories.includes(selectedCategory)) {
     selectedCategory = "";
