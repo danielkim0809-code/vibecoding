@@ -8,6 +8,7 @@ const progressTrack = document.getElementById("progress-track");
 const progressFill = document.getElementById("progress-fill");
 const themeToggle = document.getElementById("theme-toggle");
 const statusButtons = document.querySelectorAll("[data-status]");
+const statusGroup = document.querySelector(".status-filters");
 const categoryFilter = document.getElementById("category-filter");
 const dateInput = document.getElementById("todo-date");
 const timeInput = document.getElementById("todo-time");
@@ -288,6 +289,7 @@ function render() {
   emptyMessage.textContent =
     todos.length === 0 ? "아직 할 일이 없어요" : "조건에 맞는 할 일이 없어요";
 
+  statusGroup.style.setProperty("--i", String(["all", "active", "done"].indexOf(statusFilter)));
   statusButtons.forEach(function (button) {
     button.setAttribute("aria-pressed", String(button.dataset.status === statusFilter));
   });
