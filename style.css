@@ -138,21 +138,6 @@ button:active {
   font-weight: 800;
 }
 
-#todo-list li .star {
-  padding: 4px 10px;
-  background: var(--yellow);
-  font-size: 1.2rem;
-  line-height: 1;
-}
-
-#todo-list li.important {
-  background: var(--pink);
-}
-
-#todo-list li.important .star {
-  background: #fff;
-}
-
 .when {
   display: flex;
   flex-wrap: wrap;
@@ -192,4 +177,37 @@ button:active {
 
 #todo-list li span {
   flex: 1 1 8em;
+}
+
+#todo-list li.priority-high {
+  background: var(--pink);
+}
+
+.priority-badge {
+  padding: 2px 8px;
+  border: var(--border);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.priority-high .priority-badge {
+  background: #fff;
+}
+
+.priority-mid .priority-badge {
+  background: var(--yellow);
+}
+
+.priority-low .priority-badge {
+  background: var(--blue);
+}
+
+.when select {
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  background: #fff;
+  border: var(--border);
+  box-shadow: var(--shadow);
+  font: inherit;
 }

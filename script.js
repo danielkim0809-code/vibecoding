@@ -1,4 +1,5 @@
 const input = document.getElementById("todo-input");
+const priorityInput = document.getElementById("todo-priority");
 const dateInput = document.getElementById("todo-date");
 const timeInput = document.getElementById("todo-time");
 const addButton = document.getElementById("add-button");
@@ -8,14 +9,23 @@ const remainingCount = document.getElementById("remaining-count");
 
 const STORAGE_KEY = "todos";
 
-// 할 일 모음: { id, text, done, important, date, time } (date·time은 비어 있을 수 있다)
+// 할 일 모음: { id, text, done, priority, date, time } (priority는 high·mid·low, date·time은 비어 있을 수 있다)
+const PRIORITY_LABELS = { high: "높음", mid: "중간", low: "낮음" };
 let todos = loadTodos();
 
 // 저장해 둔 할 일을 꺼낸다 (없거나 망가졌으면 빈 목록)
 function loadTodos() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return Array.isArray(saved) ? saved : [];
+    if (!Array.isArray(saved)) return [];
+    // 예전에 별(important)로 저장한 것은 우선순위로 바꿔 이어 쓴다
+    return saved.map(function (todo) {
+      if (!PRIORITY_LABELS[todo.priority]) {
+        todo.priority = todo.important ? "high" : "mid";
+      }
+      delete todo.important;
+      return todo;
+    });
   } catch (error) {
     return [];
   }
@@ -52,19 +62,7 @@ function formatWhen(todo) {
 function createTodoItem(todo) {
   const item = document.createElement("li");
   item.classList.toggle("done", todo.done);
-  item.classList.toggle("important", Boolean(todo.important));
-
-  const starButton = document.createElement("button");
-  starButton.type = "button";
-  starButton.className = "star";
-  starButton.textContent = todo.important ? "★" : "☆";
-  starButton.setAttribute("aria-label", "중요한 일 표시");
-  starButton.setAttribute("aria-pressed", String(Boolean(todo.important)));
-  starButton.addEventListener("click", function () {
-    todo.important = !todo.important;
-    saveTodos();
-    render();
-  });
+  item.classList.add("priority-" + todo.priority);
 
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
@@ -77,6 +75,10 @@ function createTodoItem(todo) {
 
   const label = document.createElement("span");
   label.textContent = todo.text;
+
+  const badge = document.createElement("small");
+  badge.className = "priority-badge";
+  badge.textContent = PRIORITY_LABELS[todo.priority];
 
   const when = document.createElement("small");
   when.className = "when-text";
@@ -94,7 +96,7 @@ function createTodoItem(todo) {
     render();
   });
 
-  item.append(starButton, checkbox, label, when, deleteButton);
+  item.append(checkbox, label, badge, when, deleteButton);
   return item;
 }
 
@@ -119,12 +121,13 @@ addButton.addEventListener("click", function () {
     id: Date.now() + Math.random(),
     text: text,
     done: false,
-    important: false,
+    priority: priorityInput.value,
     date: dateInput.value,
     time: timeInput.value,
   });
   saveTodos();
   input.value = "";
+  priorityInput.value = "mid";
   dateInput.value = "";
   timeInput.value = "";
   input.focus();

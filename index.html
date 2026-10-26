@@ -11,6 +11,13 @@
 
   <input type="text" id="todo-input" placeholder="할 일을 적어 주세요">
   <div class="when">
+    <label>우선순위
+      <select id="todo-priority">
+        <option value="high">높음</option>
+        <option value="mid" selected>중간</option>
+        <option value="low">낮음</option>
+      </select>
+    </label>
     <label>날짜 <input type="date" id="todo-date"></label>
     <label>시간 <input type="time" id="todo-time"></label>
   </div>
