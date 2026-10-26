@@ -247,9 +247,9 @@ async function fetchLists() {
 const XP_PER_LEVEL = 60;
 const XP_BY_PRIORITY = { high: 30, mid: 20, low: 10 };
 const STAGES = [
-  { minLevel: 1, name: "피츄", icon: "🐭" },
-  { minLevel: 5, name: "피카츄", icon: "⚡" },
-  { minLevel: 10, name: "라이츄", icon: "🌩️" },
+  { minLevel: 1, name: "피츄", image: "images/pichu.webp" },
+  { minLevel: 5, name: "피카츄", image: "images/pikachu.webp" },
+  { minLevel: 10, name: "라이츄", image: "images/raichu.webp" },
 ];
 
 let xp = 0;
@@ -302,7 +302,8 @@ function updateLevelCard() {
   const level = levelOf(xp);
   const stage = stageOf(level);
   const inLevel = xp % XP_PER_LEVEL;
-  levelIcon.textContent = stage.icon;
+  if (levelIcon.getAttribute("src") !== stage.image) levelIcon.src = stage.image;
+  levelIcon.alt = stage.name;
   levelStage.textContent = stage.name;
   levelNumber.textContent = "Lv." + level;
   levelXp.textContent = inLevel + "/" + XP_PER_LEVEL + " XP";

@@ -667,16 +667,27 @@ html::after {
 }
 
 .level-icon {
-  display: grid;
   flex: none;
-  width: 48px;
-  height: 48px;
-  place-items: center;
-  background: var(--pika-yellow);
-  border: 1px solid var(--glass-border);
-  border-radius: 50%;
-  font-size: 1.6rem;
-  line-height: 1;
+  width: 80px;
+  height: 80px;
+  margin: -8px 0;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 4px 6px rgba(120, 80, 0, 0.3));
+}
+
+.level.evolve .level-icon {
+  animation: icon-evolve 1s var(--spring);
+}
+
+@keyframes icon-evolve {
+  0% {
+    filter: brightness(4) drop-shadow(0 0 12px #fff);
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.25);
+  }
 }
 
 .level-name {
@@ -797,6 +808,7 @@ html::after {
 @media (prefers-reduced-motion: reduce) {
   .level.level-up,
   .level.evolve,
+  .level.evolve .level-icon,
   .level-message {
     animation: none;
   }
