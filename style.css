@@ -127,3 +127,13 @@ button:active {
   text-decoration: line-through;
   opacity: 0.5;
 }
+
+#remaining-count {
+  display: inline-block;
+  margin: 24px 0 0;
+  padding: 4px 12px;
+  background: var(--blue);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  font-weight: 800;
+}
