@@ -628,7 +628,7 @@ html::after {
 
 body::before {
   top: 30vh;
-  right: -48px;
+  right: max(-48px, calc(50% - 400px));
   width: 190px;
   height: 304px;
   transform: rotate(14deg);
@@ -636,7 +636,7 @@ body::before {
 
 body::after {
   bottom: -40px;
-  left: -44px;
+  left: max(-44px, calc(50% - 420px));
   width: 140px;
   height: 224px;
   transform: rotate(-18deg);
@@ -644,14 +644,14 @@ body::after {
 
 html::before {
   top: 6vh;
-  left: -36px;
+  left: max(-36px, calc(50% - 380px));
   width: 96px;
   height: 154px;
   transform: rotate(-24deg);
 }
 
 html::after {
-  right: -26px;
+  right: max(-26px, calc(50% - 360px));
   bottom: 8vh;
   width: 84px;
   height: 134px;
