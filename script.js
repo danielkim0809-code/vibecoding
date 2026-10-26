@@ -23,6 +23,7 @@ const THEME_KEY = "theme";
 const PRIORITY_LABELS = { high: "높음", mid: "중간", low: "낮음" };
 let todos = loadTodos();
 let editingId = null; // 고치는 중인 할 일의 id (없으면 null)
+let justCheckedId = null; // 방금 체크한 할 일 (애니메이션용)
 let statusFilter = "all"; // all · active · done
 let selectedCategory = ""; // 빈 글자면 전체 카테고리
 
@@ -77,12 +78,17 @@ function createTodoItem(todo) {
   const item = document.createElement("li");
   item.classList.toggle("done", todo.done);
   item.classList.add("priority-" + todo.priority);
+  if (todo.id === justCheckedId) {
+    item.classList.add("just-checked");
+    justCheckedId = null;
+  }
 
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
   checkbox.checked = todo.done;
   checkbox.addEventListener("change", function () {
     todo.done = checkbox.checked;
+    justCheckedId = todo.done ? todo.id : null;
     saveTodos();
     render();
   });
