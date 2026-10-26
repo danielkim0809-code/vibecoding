@@ -7,6 +7,7 @@
   --mid: #d98a00;
   --low: #2f80ed;
   --pika-yellow: #ffd733;
+  --tail: rgba(176, 120, 0, 0.28);
   --glass: rgba(255, 255, 255, 0.26);
   --glass-strong: rgba(255, 255, 255, 0.45);
   --glass-border: rgba(255, 255, 255, 0.7);
@@ -38,6 +39,7 @@
   --rim-bottom: rgba(255, 255, 255, 0.18);
   --inner-glow: inset 0 0 24px rgba(255, 255, 255, 0.06);
   --page-base: #1c1604;
+  --tail: rgba(255, 215, 51, 0.12);
 }
 
 * {
@@ -527,7 +529,8 @@ button:active {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: -4px 4px 16px;
+  margin: -4px auto 16px;
+  padding: 0 4px;
 }
 
 .list-tools button {
@@ -593,4 +596,32 @@ h1::before {
 #add-button,
 #list-form-ok {
   text-shadow: 0 1px 2px rgba(120, 20, 0, 0.35);
+}
+
+/* 바탕 무늬: 피카츄 꼬리(수컷, 끝이 평평한 번개 모양)를 닮은 번개 두 개. 아주 은은하게, 한 가지 색으로 */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  background: var(--tail);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 160'%3E%3Cpolygon points='42,0 100,0 100,46 76,46 96,46 56,104 86,104 22,160 40,116 10,116 50,52 28,52'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 160'%3E%3Cpolygon points='42,0 100,0 100,46 76,46 96,46 56,104 86,104 22,160 40,116 10,116 50,52 28,52'/%3E%3C/svg%3E") center / contain no-repeat;
+  pointer-events: none;
+}
+
+body::before {
+  top: 30vh;
+  right: -48px;
+  width: 190px;
+  height: 304px;
+  transform: rotate(14deg);
+}
+
+body::after {
+  bottom: -40px;
+  left: -44px;
+  width: 140px;
+  height: 224px;
+  transform: rotate(-18deg);
 }
