@@ -141,7 +141,7 @@ async function api(path, method, body) {
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new Error(method + " " + path + " → " + response.status + " " + (await response.text()));
+    throw new Error((method || "GET") + " " + path + " → " + response.status + " " + (await response.text()));
   }
   const text = await response.text();
   return text ? JSON.parse(text) : null;
