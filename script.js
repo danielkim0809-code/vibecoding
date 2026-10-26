@@ -55,8 +55,11 @@ function saveTodos() {
   }
 }
 
-// 날짜 → 시간 순서로 비교한다 (날짜 없음은 맨 아래, 같은 날짜에서 시간 없음은 그날 맨 아래)
+// 중요(높음) 먼저, 그다음 날짜 → 시간 순서로 비교한다 (날짜 없음은 맨 아래, 같은 날짜에서 시간 없음은 그날 맨 아래)
 function compareTodos(a, b) {
+  const importantA = a.priority === "high" ? 0 : 1;
+  const importantB = b.priority === "high" ? 0 : 1;
+  if (importantA !== importantB) return importantA - importantB;
   const dateA = a.date || "9999-99-99";
   const dateB = b.date || "9999-99-99";
   if (dateA !== dateB) return dateA < dateB ? -1 : 1;
