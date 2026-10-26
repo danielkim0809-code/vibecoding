@@ -152,3 +152,44 @@ button:active {
 #todo-list li.important .star {
   background: #fff;
 }
+
+.when {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.when label {
+  display: flex;
+  flex: 1 1 140px;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.when input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  background: #fff;
+  border: var(--border);
+  box-shadow: var(--shadow);
+  font: inherit;
+}
+
+#todo-list li .when-text {
+  padding: 2px 8px;
+  background: var(--yellow);
+  border: var(--border);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+#todo-list li {
+  flex-wrap: wrap;
+}
+
+#todo-list li span {
+  flex: 1 1 8em;
+}
